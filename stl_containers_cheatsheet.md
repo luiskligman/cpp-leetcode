@@ -30,6 +30,41 @@ sort(v.begin(), v.end());
 - Access `O(1)`, push_back amortized `O(1)`, insert/erase middle `O(n)`.
 - **Gotcha:** `v.reserve(n)` before a known number of push_backs to avoid reallocations. Erasing invalidates iterators/pointers from that point on.
 
+### `string` — a vector of chars (+ extras)
+**Use when:** any text problem — palindromes, anagrams, parsing, building output.
+```cpp
+string s = "hello world";   string t(n, 'a');   // n copies of 'a'
+s[i];            // char& — no bounds check
+s.at(i);         // char& — throws out_of_range if i is bad
+s.front();       // char& — first (UB if empty)
+s.back();        // char& — last  (UB if empty)
+s.size();        // size_t (unsigned!) — same as s.length()
+s.empty();       // bool
+s.substr(pos, len);   // string — COPY, len chars from pos ("world" = s.substr(6, 5))
+s.substr(pos);        // string — from pos to end
+s.find("o");          // size_t — first index, or string::npos if missing
+s.find("o", start);   // size_t — search starting at index start
+s.rfind('o');         // size_t — last index
+if (s.find("zz") == string::npos) {...}   // not found
+
+s += 'a';  s += "bc";  s.push_back('d');  s.pop_back();   // append / remove last
+reverse(s.begin(), s.end());  sort(s.begin(), s.end());   // in place
+
+int d = c - '0';       // '7' -> 7
+int k = c - 'a';       // 'c' -> 2 (index for int freq[26])
+char ch = 'a' + k;     // 2 -> 'c'
+stoi("42");            // int     stoll(...) for long long
+to_string(5);          // string "5"
+isdigit(c); isalpha(c); isalnum(c);   // int, nonzero = true
+tolower(c); toupper(c);               // int — cast: (char)tolower(c)
+
+for (char c : s) {...}                            // each char
+for (int i = 0; i < (int)s.size(); i++) s[i];    // by index
+stringstream ss(line);  string w;  while (ss >> w) {...}   // split on spaces
+```
+- `substr`, `+`, and `find` are `O(n)` — don't call `substr` in a hot loop.
+- **Gotcha:** `find` returns `string::npos` (a huge unsigned number), **not -1** — always compare to `npos`. `s + 'a'` makes a new copy; `s += 'a'` appends in place (`O(1)`).
+
 ### `deque<T>` — double-ended vector
 **Use when:** you push/pop at **both ends** (sliding window, BFS-ish queues).
 ```cpp
