@@ -38,7 +38,25 @@ if (it != v.end()) { *it; int idx = it - v.begin(); }   // value, index
 
 for (int i = 0; i < (int)v.size(); i++) v[i];   // by index
 for (auto& x : v) {...}                          // by reference (can modify)
-sort(v.begin(), v.end());
+
+// <algorithm> on a vector — all take (begin, end), all modify/read IN PLACE
+sort(v.begin(), v.end());              // ascending
+sort(v.rbegin(), v.rend());            // descending (reverse iterators)
+sort(v.begin(), v.end(), cmp);         // custom: [](int a, int b){ return a > b; }
+reverse(v.begin(), v.end());           // void — flip in place
+reverse(v.begin()+a, v.begin()+b);     // reverses [a, b) — b is NOT included
+    // v.end() is one PAST the last element, which is why (begin, end) covers all of it.
+    // reverse(v.begin(), v.begin()+3) flips v[0], v[1], v[2] only — v[3] is untouched.
+fill(v.begin(), v.end(), 0);           // void — set everything to 0
+iota(v.begin(), v.end(), 0);           // void — fill 0,1,2,3,... (<numeric>)
+rotate(v.begin(), v.begin()+k, v.end());   // void — left-rotate by k
+swap(v[i], v[j]);                      // void
+*max_element(v.begin(), v.end());      // value (drop the * for the iterator/index)
+*min_element(v.begin(), v.end());
+accumulate(v.begin(), v.end(), 0LL);   // sum — 0LL so it can't overflow int
+count(v.begin(), v.end(), x);          // how many equal x
+is_sorted(v.begin(), v.end());         // bool
+vector<int> sub(v.begin()+a, v.begin()+b);   // copy of the slice [a, b)
 ```
 - Access `O(1)`, push_back amortized `O(1)`, insert/erase middle `O(n)`.
 - **Gotcha:** `v.reserve(n)` before a known number of push_backs to avoid reallocations. Erasing invalidates iterators/pointers from that point on.
@@ -71,7 +89,12 @@ s.clear();                // void
 s.find_first_of("aeiou"); // size_t — first index of ANY of those chars (npos if none)
 s.c_str();                // const char* — only for C APIs (printf, atoi)
 s == t;  s < t;           // bool — direct compare, lexicographic (no strcmp needed)
-reverse(s.begin(), s.end());  sort(s.begin(), s.end());   // in place
+// <algorithm> works on a string exactly like a vector<char>
+reverse(s.begin(), s.end());          // void — in place
+sort(s.begin(), s.end());             // void — anagram check: sort both, compare
+count(s.begin(), s.end(), 'l');       // how many 'l'
+*max_element(s.begin(), s.end());     // largest char
+string sub(s.begin()+a, s.begin()+b); // same as s.substr(a, b-a)
 
 int d = c - '0';       // '7' -> 7
 int k = c - 'a';       // 'c' -> 2 (index for int freq[26])
@@ -101,6 +124,7 @@ d.empty();      // bool
 d.clear();      // void
 d.emplace_front(x);  d.emplace_back(x);   // build in place
 d.insert(d.begin()+i, x);  d.erase(d.begin()+i);   // works, but O(n) — prefer the ends
+sort(d.begin(), d.end());  reverse(d.begin(), d.end());   // <algorithm> works (random access)
 ```
 - Both ends `O(1)`, random access `O(1)` but slower constant than vector.
 - **Gotcha:** no contiguous memory — don't treat `&d[0]` like a C array.
@@ -270,27 +294,71 @@ for (int x : seen) {...}         // random order
 
 ## Common Algorithms (`<algorithm>`, `<numeric>`)
 
+Every one of these takes a **`[begin, end)` iterator range**, so the same call works on a `vector`, a `string`, an `array`, a raw array, or any sub-range like `v.begin()+2, v.end()`.
+
+### Sorting & ordering
 ```cpp
 sort(v.begin(), v.end());                       // ascending, O(n log n)
 sort(v.begin(), v.end(), greater<int>());       // descending
+sort(v.rbegin(), v.rend());                     // descending, no comparator needed
 sort(v.begin(), v.end(), [](auto&a, auto&b){ return a.second < b.second; });
+stable_sort(v.begin(), v.end());                // keeps equal elements in original order
+is_sorted(v.begin(), v.end());                  // bool
+reverse(v.begin(), v.end());                    // void
+rotate(v.begin(), v.begin()+k, v.end());        // void — left-rotate by k
+nth_element(v.begin(), v.begin()+k, v.end());   // void — puts the k-th smallest at k, O(n)
+next_permutation(v.begin(), v.end());           // bool — next lexicographic order
+    sort(v.begin(), v.end());
+    do { /* use v */ } while (next_permutation(v.begin(), v.end()));   // all permutations
+```
 
-reverse(v.begin(), v.end());
-lower_bound(v.begin(), v.end(), x);  // first >= x  (v must be sorted)
-upper_bound(v.begin(), v.end(), x);  // first > x
-binary_search(v.begin(), v.end(), x);           // bool
+### Searching (sorted range required for the binary ones)
+```cpp
+find(v.begin(), v.end(), x);         // iterator, v.end() if missing
+find_if(v.begin(), v.end(), pred);   // iterator — first matching a lambda
+int idx = it - v.begin();            // iterator -> index
+count(v.begin(), v.end(), x);        // how many equal x
+count_if(v.begin(), v.end(), pred);  // how many match
+any_of / all_of / none_of (v.begin(), v.end(), pred);   // bool
+binary_search(v.begin(), v.end(), x);           // bool        — sorted only
+lower_bound(v.begin(), v.end(), x);  // first >= x  (iterator) — sorted only
+upper_bound(v.begin(), v.end(), x);  // first >  x  (iterator) — sorted only
+```
 
-max_element(v.begin(), v.end());   // returns iterator; *it for value
-min_element(v.begin(), v.end());
+### Numeric (`<numeric>`)
+```cpp
 accumulate(v.begin(), v.end(), 0LL);            // sum — use 0LL to avoid overflow
-count(v.begin(), v.end(), x);
+accumulate(v.begin(), v.end(), 1LL, multiplies<long long>());   // product
+partial_sum(v.begin(), v.end(), pre.begin());   // running prefix sums into pre
+iota(v.begin(), v.end(), 0);                    // fill 0,1,2,3,...
+*max_element(v.begin(), v.end());  *min_element(v.begin(), v.end());
+auto [mn, mx] = minmax_element(v.begin(), v.end());   // both in one pass
+```
+
+### Filling, copying, transforming
+```cpp
+fill(v.begin(), v.end(), 0);                    // void
+copy(v.begin(), v.end(), dest.begin());         // dest must already be big enough
+transform(v.begin(), v.end(), back_inserter(sq), [](int x){ return x*x; });
 unique(v.begin(), v.end());        // needs sorted first; erase leftovers
 v.erase(unique(v.begin(), v.end()), v.end());   // dedup idiom
+v.erase(remove(v.begin(), v.end(), x), v.end());          // remove all x
+v.erase(remove_if(v.begin(), v.end(), pred), v.end());    // remove all matching
+```
 
-fill(v.begin(), v.end(), 0);
-__gcd(a, b);
+### Iterator helpers & scalar math
+```cpp
+next(it);  prev(it);               // iterator one forward / back (doesn't move it)
+distance(a, b);                    // # of steps between two iterators
+back_inserter(v);                  // "output iterator" that push_backs
+max(a, b);  min(a, b);  max({a,b,c});   // {braces} for 3+
+abs(x);  __gcd(a, b);  pow(a, b);       // pow returns double — cast for ints
+swap(a, b);
+to_string(x);  stoi(str);  stoll(str);
 ```
 - **Gotcha:** `lower_bound`/`binary_search`/`unique` all assume the range is **already sorted**. `accumulate`'s init value sets the type — pass `0LL` for long long sums.
+- **Gotcha:** `remove`/`unique` don't shrink the container — they shuffle the keepers to the front and return the new end. You must pair them with `erase`.
+- **Gotcha:** on a `set`/`map`, use the **member** `st.find/lower_bound/upper_bound` (`O(log n)`). The `std::` versions walk one by one (`O(n)`). `sort`/`reverse` don't compile on them at all — copy out first: `vector<int> v(st.begin(), st.end());`
 
 ---
 
