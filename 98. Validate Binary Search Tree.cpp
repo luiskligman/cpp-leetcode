@@ -22,7 +22,7 @@ public:
         q.push({root, LLONG_MIN, LLONG_MAX});
 
         while (!q.empty()) {
-            // keep track 
+            // keep track of the min and max each node can be as you progress through the BST
             auto [node, lo, hi] = q.front();
             q.pop();
 
